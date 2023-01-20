@@ -1,0 +1,9 @@
+version: 1.2
+workflows:
+  - name: minimap2
+    subclass: WDL
+    description: Align two sets of sequences using minimap2 into a sorted BAM
+    primaryDescriptorPath: /workflow.wdl
+    authors:
+      - name: Jean Monlong
+        email: jmonlong@ucsc.edu
