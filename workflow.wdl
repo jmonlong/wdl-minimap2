@@ -9,7 +9,7 @@ task alignAndSortBAM {
         Boolean eqx = true
         Boolean secondary = false
         Int kmerSize = 17
-        Int minMinimizers = 10
+        Int minMinimizers = 3
         String batchSize = "4g"
         String indexSplitBp = "8g"
         String otherArgs = ""
@@ -17,7 +17,7 @@ task alignAndSortBAM {
         String sortMemory = "4G"
         Int cores = 64
         Int disk = 10 * round(size(target_seq_file, 'G') + size(query_seq_file, 'G')) + 50
-        Int mem = 100
+        Int mem = 96
         String container
         Int preemptible = 1
     }
@@ -76,7 +76,7 @@ workflow minimap2 {
         File QUERY_SEQ_FILE
         String DOCKER_CONTAINER = "quay.io/jmonlong/minimap2_samtools:v2.24_v1.16.1"
         Int CORES = 64
-        Int MEM = 100
+        Int MEM = 96
     }
 
     call alignAndSortBAM {
