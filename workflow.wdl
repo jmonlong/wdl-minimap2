@@ -1,33 +1,5 @@
 version 1.0
 
-workflow minimap2 {
-    meta {
-	author: "Jean Monlong"
-        email: "jmonlong@ucsc.edu"
-        description: "Align two sets of sequences using minimap2 into a sorted BAM." 
-    }
-    input {
-        File TARGET_SEQ_FILE
-        File QUERY_SEQ_FILE
-        String DOCKER_CONTAINER = "quay.io/jmonlong/minimap2_samtools:v2.24_v1.16.1"
-        Int CORES = 64
-        Int MEM = 100
-    }
-
-    call alignAndSortBAM {
-        input:
-        target_seq_file=TARGET_SEQ_FILE,
-        query_seq_file=QUERY_SEQ_FILE,
-        container=DOCKER_CONTAINER,
-        cores=CORES,
-        mem=MEM
-    }
-    
-    output {
-        File bam = alignAndSortBAM.bam
-        File bam_index = alignAndSortBAM.bam_index
-    }
-}
 
 task alignAndSortBAM {
     input {
@@ -52,17 +24,32 @@ task alignAndSortBAM {
 
     Int alignThreads = if cores < 16 then ceil(cores/2) else cores - 8
     Int sortThreads = if cores < 16 then floor(cores/2) else 8
-    
+
     command <<<
-    set -eux -o pipefail
+        input_path="~{query_seq_file}"
+        fasta_path=""
 
-    minimap2 -t ~{alignThreads} ~{true="--eqx" false="" eqx} -x ~{preset} \
-             -n ~{minMinimizers} -a -K ~{batchSize} -k ~{kmerSize} -I ~{indexSplitBp} \
-             --secondary=~{true="yes" false="no" secondary} ~{otherArgs} \
-             ~{target_seq_file} ~{query_seq_file} | samtools sort -m ~{sortMemory} -o ~{out_label}.bam -O BAM -@ ~{sortThreads}
+        if [ ${input_path: -4} == ".bam" ]
+        then
+            echo "converting BAM input..."
+            fasta_path="${input_path:0:-4}.fasta"
+            samtools fasta ${input_path} > ${fasta_path}
+        else
+            fasta_path="${input_path}"
+        fi
 
-    samtools index ~{out_label}.bam ~{out_label}.bam.bai
+        echo ${fasta_path}
+
+        set -eux -o pipefail
+
+        minimap2 -t ~{alignThreads} ~{true="--eqx" false="" eqx} -x ~{preset} \
+                 -n ~{minMinimizers} -a -K ~{batchSize} -k ~{kmerSize} -I ~{indexSplitBp} \
+                 --secondary=~{true="yes" false="no" secondary} ~{otherArgs} \
+                 ~{target_seq_file} ${fasta_path} | samtools sort -m ~{sortMemory} -o ~{out_label}.bam -O BAM -@ ~{sortThreads}
+
+        samtools index ~{out_label}.bam ~{out_label}.bam.bai
     >>>
+
     output {
         File bam= "~{out_label}.bam"
         File bam_index= "~{out_label}.bam.bai"
@@ -73,6 +60,37 @@ task alignAndSortBAM {
         cpu: cores
         disks: "local-disk " + disk + " SSD"
         preemptible: preemptible
+    }
+}
+
+
+
+workflow minimap2 {
+    meta {
+	author: "Jean Monlong"
+        email: "jmonlong@ucsc.edu"
+        description: "Align two sets of sequences using minimap2 into a sorted BAM. FASTA or unmapped BAMs accepted as input."
+    }
+    input {
+        File TARGET_SEQ_FILE
+        File QUERY_SEQ_FILE
+        String DOCKER_CONTAINER = "quay.io/jmonlong/minimap2_samtools:v2.24_v1.16.1"
+        Int CORES = 64
+        Int MEM = 100
+    }
+
+    call alignAndSortBAM {
+        input:
+        target_seq_file=TARGET_SEQ_FILE,
+        query_seq_file=QUERY_SEQ_FILE,
+        container=DOCKER_CONTAINER,
+        cores=CORES,
+        mem=MEM
+    }
+
+    output {
+        File bam = alignAndSortBAM.bam
+        File bam_index = alignAndSortBAM.bam_index
     }
 }
 
