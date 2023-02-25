@@ -8,6 +8,7 @@ task alignAndSortBAM {
         String preset = "map-ont"
         Boolean eqx = true
         Boolean secondary = false
+        Boolean softClipOnly = false
         Int kmerSize = 17
         Int minMinimizers = 3
         String batchSize = "4g"
@@ -45,6 +46,7 @@ task alignAndSortBAM {
         minimap2 -t ~{alignThreads} ~{true="--eqx" false="" eqx} -x ~{preset} \
                  -n ~{minMinimizers} -a -K ~{batchSize} -k ~{kmerSize} -I ~{indexSplitBp} \
                  --secondary=~{true="yes" false="no" secondary} ~{otherArgs} \
+                 ~{true="-Y" false="" softClipOnly} \
                  ~{target_seq_file} ${fasta_path} | samtools sort -m ~{sortMemory} -o ~{out_label}.bam -O BAM -@ ~{sortThreads}
 
         samtools index ~{out_label}.bam ~{out_label}.bam.bai
