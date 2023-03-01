@@ -17,6 +17,7 @@ RUN apt-get update \
     bzip2 \
     git \
     sudo \
+    pigz \
     pkg-config \
     zlib1g-dev \
     libcurl4-openssl-dev \
